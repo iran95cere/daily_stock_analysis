@@ -8,6 +8,7 @@ import { historyApi } from '../api/history';
 import { analysisApi, DuplicateTaskError } from '../api/analysis';
 import { validateStockCode } from '../utils/validation';
 import { getRecentStartDate, getTodayInShanghai } from '../utils/format';
+import { getReportText, normalizeReportLanguage } from '../utils/reportLanguage';
 import { useAnalysisStore } from '../stores/analysisStore';
 import { ReportSummary, ReportMarkdown } from '../components/report';
 import { HistoryList } from '../components/history';
@@ -58,6 +59,8 @@ const HomePage: React.FC = () => {
 
   // Markdown report drawer state
   const [showMarkdownDrawer, setShowMarkdownDrawer] = useState(false);
+  const reportLanguage = normalizeReportLanguage(selectedReport?.meta.reportLanguage);
+  const reportText = getReportText(reportLanguage);
 
   // Used to track the current analysis request to avoid race conditions
   const analysisRequestIdRef = useRef<number>(0);
@@ -527,7 +530,7 @@ const HomePage: React.FC = () => {
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
-                详细报告
+                {reportText.fullReport}
               </button>
             </div>
             <ReportSummary data={selectedReport} isHistory />
@@ -553,6 +556,7 @@ const HomePage: React.FC = () => {
           recordId={selectedReport.meta.id}
           stockName={selectedReport.meta.stockName || ''}
           stockCode={selectedReport.meta.stockCode}
+          reportLanguage={reportLanguage}
           onClose={() => setShowMarkdownDrawer(false)}
         />
       )}

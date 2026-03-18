@@ -41,6 +41,7 @@ from src.agent.protocols import (
 )
 from src.agent.runner import parse_dashboard_json
 from src.agent.tools.registry import ToolRegistry
+from src.report_language import normalize_report_language
 
 if TYPE_CHECKING:
     from src.agent.executor import AgentResult
@@ -506,6 +507,7 @@ class AgentOrchestrator:
             ctx.stock_code = context.get("stock_code", "")
             ctx.stock_name = context.get("stock_name", "")
             ctx.meta["strategies_requested"] = context.get("strategies", [])
+            ctx.meta["report_language"] = normalize_report_language(context.get("report_language", "zh"))
 
             # Pre-populate data fields that the caller already has
             for data_key in ("realtime_quote", "daily_history", "chip_distribution",
@@ -516,6 +518,9 @@ class AgentOrchestrator:
         # Try to extract stock code from the query text
         if not ctx.stock_code:
             ctx.stock_code = _extract_stock_code(task)
+
+        if "report_language" not in ctx.meta:
+            ctx.meta["report_language"] = "zh"
 
         return ctx
 

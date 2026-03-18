@@ -1,9 +1,11 @@
 import type React from 'react';
-import type { ReportStrategy as ReportStrategyType } from '../../types/analysis';
+import type { ReportLanguage, ReportStrategy as ReportStrategyType } from '../../types/analysis';
 import { Card } from '../common';
+import { getReportText, normalizeReportLanguage } from '../../utils/reportLanguage';
 
 interface ReportStrategyProps {
   strategy?: ReportStrategyType;
+  language?: ReportLanguage;
 }
 
 interface StrategyItemProps {
@@ -38,29 +40,32 @@ const StrategyItem: React.FC<StrategyItemProps> = ({
 /**
  * 策略点位区组件 - 终端风格
  */
-export const ReportStrategy: React.FC<ReportStrategyProps> = ({ strategy }) => {
+export const ReportStrategy: React.FC<ReportStrategyProps> = ({ strategy, language = 'zh' }) => {
   if (!strategy) {
     return null;
   }
 
+  const reportLanguage = normalizeReportLanguage(language);
+  const text = getReportText(reportLanguage);
+
   const strategyItems = [
     {
-      label: '理想买入',
+      label: text.idealBuy,
       value: strategy.idealBuy,
       color: '#00ff88', // success
     },
     {
-      label: '二次买入',
+      label: text.secondaryBuy,
       value: strategy.secondaryBuy,
       color: '#00d4ff', // cyan
     },
     {
-      label: '止损价位',
+      label: text.stopLoss,
       value: strategy.stopLoss,
       color: '#ff4466', // danger
     },
     {
-      label: '止盈目标',
+      label: text.takeProfit,
       value: strategy.takeProfit,
       color: '#ffaa00', // warning
     },
@@ -69,8 +74,8 @@ export const ReportStrategy: React.FC<ReportStrategyProps> = ({ strategy }) => {
   return (
     <Card variant="bordered" padding="md">
       <div className="mb-3 flex items-baseline gap-2">
-        <span className="label-uppercase">STRATEGY POINTS</span>
-        <h3 className="text-base font-semibold text-white">狙击点位</h3>
+        <span className="label-uppercase">{text.strategyPoints}</span>
+        <h3 className="text-base font-semibold text-white">{text.sniperLevels}</h3>
       </div>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {strategyItems.map((item) => (

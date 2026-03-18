@@ -31,6 +31,7 @@ from api.v1.schemas.history import (
 )
 from api.v1.schemas.common import ErrorResponse
 from src.storage import DatabaseManager
+from src.report_language import normalize_report_language
 from src.services.history_service import HistoryService, MarkdownReportGenerationError
 from src.utils.data_processing import normalize_model_used, extract_fundamental_detail_fields
 
@@ -226,6 +227,19 @@ def get_history_detail(
                 current_price = realtime_quote_raw.get("price")
                 change_pct = change_pct or realtime_quote_raw.get("change_pct") or realtime_quote_raw.get("pct_chg")
         
+        raw_result = result.get("raw_result")
+        if not isinstance(raw_result, dict):
+            raw_result = {}
+        report_language = normalize_report_language(
+            result.get("report_language")
+            or raw_result.get("report_language")
+            or (
+                context_snapshot.get("report_language")
+                if isinstance(context_snapshot, dict)
+                else None
+            )
+        )
+
         # 构建响应模型
         meta = ReportMeta(
             id=result.get("id"),
@@ -233,6 +247,7 @@ def get_history_detail(
             stock_code=result.get("stock_code", ""),
             stock_name=result.get("stock_name"),
             report_type=result.get("report_type"),
+            report_language=report_language,
             created_at=result.get("created_at"),
             current_price=current_price,
             change_pct=change_pct,

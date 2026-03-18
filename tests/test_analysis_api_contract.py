@@ -108,6 +108,26 @@ class AnalysisApiContractTestCase(unittest.TestCase):
         self.assertEqual(report.details.financial_report["report_date"], "2025-12-31")
         self.assertEqual(report.details.dividend_metrics["ttm_dividend_yield_pct"], 2.5)
 
+    def test_build_analysis_report_preserves_report_language(self) -> None:
+        if _build_analysis_report is None:
+            self.skipTest("analysis endpoint helpers unavailable in this environment")
+
+        report = _build_analysis_report(
+            report_data={
+                "meta": {"report_language": "en"},
+                "summary": {"analysis_summary": "English output"},
+                "strategy": {},
+                "details": {},
+            },
+            query_id="q1",
+            stock_code="AAPL",
+            stock_name="Apple",
+            context_snapshot={"report_language": "zh"},
+            fallback_fundamental_payload=None,
+        )
+
+        self.assertEqual(report.meta.report_language, "en")
+
     def test_load_sync_fundamental_sources_uses_query_and_code_for_fallback(self) -> None:
         if _load_sync_fundamental_sources is None:
             self.skipTest("analysis endpoint helpers unavailable in this environment")

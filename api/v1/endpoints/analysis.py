@@ -48,6 +48,7 @@ from api.v1.schemas.history import (
 )
 from data_provider.base import canonical_stock_code
 from src.config import Config
+from src.report_language import normalize_report_language
 from src.services.task_queue import (
     get_task_queue,
     DuplicateTaskError,
@@ -514,6 +515,9 @@ def get_analysis_status(task_id: str) -> TaskStatus:
                     stock_code=record.code,
                     stock_name=record.name,
                     report_type=getattr(record, 'report_type', None),
+                    report_language=normalize_report_language(
+                        (raw_result or {}).get("report_language") if isinstance(raw_result, dict) else None
+                    ),
                     created_at=record.created_at.isoformat() if record.created_at else None,
                     model_used=model_used,
                 ),
@@ -631,6 +635,11 @@ def _build_analysis_report(
         stock_code=meta_data.get("stock_code", stock_code),
         stock_name=meta_data.get("stock_name", stock_name),
         report_type=meta_data.get("report_type", "detailed"),
+        report_language=normalize_report_language(
+            meta_data.get("report_language")
+            or (context_snapshot or {}).get("report_language")
+            or getattr(Config.get_instance(), "report_language", "zh")
+        ),
         created_at=meta_data.get("created_at", datetime.now().isoformat()),
         current_price=meta_data.get("current_price"),
         change_pct=meta_data.get("change_pct"),

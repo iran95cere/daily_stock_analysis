@@ -20,6 +20,8 @@ from urllib.parse import urlparse
 from dotenv import load_dotenv, dotenv_values
 from dataclasses import dataclass, field
 
+from src.report_language import normalize_report_language
+
 
 @dataclass
 class ConfigIssue:
@@ -480,6 +482,7 @@ class Config:
 
     # 报告类型：simple(精简) 或 full(完整)
     report_type: str = "simple"
+    report_language: str = "zh"
 
     # 仅分析结果摘要：true 时只推送汇总，不含个股详情（Issue #262）
     report_summary_only: bool = False
@@ -1045,6 +1048,7 @@ class Config:
             astrbot_token=os.getenv('ASTRBOT_TOKEN'),
             single_stock_notify=os.getenv('SINGLE_STOCK_NOTIFY', 'false').lower() == 'true',
             report_type=cls._parse_report_type(os.getenv('REPORT_TYPE', 'simple')),
+            report_language=cls._parse_report_language(os.getenv('REPORT_LANGUAGE', 'zh')),
             report_summary_only=os.getenv('REPORT_SUMMARY_ONLY', 'false').lower() == 'true',
             report_templates_dir=os.getenv('REPORT_TEMPLATES_DIR', 'templates'),
             report_renderer_enabled=os.getenv('REPORT_RENDERER_ENABLED', 'false').lower() == 'true',
@@ -1411,6 +1415,18 @@ class Config:
             f"REPORT_TYPE '{value}' invalid, fallback to 'simple' (valid: simple/full/brief)"
         )
         return 'simple'
+
+    @classmethod
+    def _parse_report_language(cls, value: Optional[str]) -> str:
+        """Parse REPORT_LANGUAGE, fallback to zh for invalid values."""
+        normalized = normalize_report_language(value, default="zh")
+        raw = (value or "zh").strip().lower()
+        if raw not in {"zh", "en"} and normalized == "zh":
+            logging.getLogger(__name__).warning(
+                "REPORT_LANGUAGE '%s' invalid, fallback to 'zh' (valid: zh/en)",
+                value,
+            )
+        return normalized
 
     @classmethod
     def _parse_news_strategy_profile(cls, value: Optional[str]) -> str:
