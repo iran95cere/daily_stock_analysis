@@ -232,6 +232,26 @@ def test_sanitize_llm_log_preview_redacts_entire_quoted_assignment_values(raw_pr
     assert "abc def" not in preview
 
 
+@pytest.mark.parametrize(
+    ("raw_preview", "expected_preview"),
+    [
+        ("password=correct horse battery staple", "password=[REDACTED]"),
+        (
+            "password=correct horse battery staple session_id=abc123",
+            "password=[REDACTED] session_id=[REDACTED]",
+        ),
+    ],
+)
+def test_sanitize_llm_log_preview_redacts_entire_unquoted_assignment_values_with_whitespace(
+    raw_preview, expected_preview
+):
+    preview = _sanitize_llm_log_preview(raw_preview)
+
+    assert preview == expected_preview
+    assert "correct horse battery staple" not in preview
+    assert "abc123" not in preview
+
+
 def test_analyze_logs_actual_model_used_in_response_metadata(caplog, monkeypatch):
     configured_model = "gemini/gemini-2.5-flash"
     actual_model = "openai/gpt-4.1-mini"
