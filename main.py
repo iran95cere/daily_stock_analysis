@@ -23,7 +23,7 @@ A股自选股智能分析系统 - 主调度程序
 """
 import os
 from pathlib import Path
-from typing import Dict
+from typing import Dict, Optional
 
 from dotenv import dotenv_values
 from src.config import setup_env
@@ -47,7 +47,7 @@ import sys
 import time
 import uuid
 from datetime import datetime, timezone, timedelta
-from typing import List, Optional, Tuple
+from typing import List, Tuple
 
 from data_provider.base import canonical_stock_code
 from src.core.pipeline import StockAnalysisPipeline
@@ -68,7 +68,7 @@ def _get_active_env_path() -> Path:
     return Path(__file__).resolve().parent / ".env"
 
 
-def _read_active_env_values() -> Dict[str, str]:
+def _read_active_env_values() -> Optional[Dict[str, str]]:
     env_path = _get_active_env_path()
     if not env_path.exists():
         return {}
@@ -86,8 +86,9 @@ def _read_active_env_values() -> Dict[str, str]:
     }
 
 
+_ACTIVE_ENV_FILE_VALUES = _read_active_env_values() or {}
 _RUNTIME_ENV_FILE_KEYS = {
-    key for key in _read_active_env_values()
+    key for key in _ACTIVE_ENV_FILE_VALUES
     if key not in _INITIAL_PROCESS_ENV
 }
 
@@ -97,6 +98,9 @@ def _reload_env_file_values_preserving_overrides() -> None:
     global _RUNTIME_ENV_FILE_KEYS
 
     latest_values = _read_active_env_values()
+    if latest_values is None:
+        return
+
     managed_keys = {
         key for key in latest_values
         if key not in _INITIAL_PROCESS_ENV
@@ -588,6 +592,9 @@ def _build_schedule_time_provider(default_schedule_time: str):
     manager = ConfigManager()
 
     def _provider() -> str:
+        if "SCHEDULE_TIME" in _INITIAL_PROCESS_ENV:
+            return os.getenv("SCHEDULE_TIME", default_schedule_time)
+
         config_map = manager.read_config_map()
         schedule_time = (config_map.get("SCHEDULE_TIME", "") or "").strip()
         if schedule_time:

@@ -188,6 +188,36 @@ class MainScheduleModeTestCase(unittest.TestCase):
         self.assertIs(reloaded_config, runtime_config)
         get_config_mock.assert_called_once_with()
 
+    def test_reload_env_file_values_preserves_managed_env_vars_when_read_fails(self) -> None:
+        with patch.dict(
+            os.environ,
+            {
+                "ENV_FILE": str(self.env_path),
+                "OPENAI_API_KEY": "runtime-secret",
+                "SCHEDULE_TIME": "09:30",
+            },
+            clear=False,
+        ), patch.object(
+            main,
+            "_INITIAL_PROCESS_ENV",
+            {},
+        ), patch.object(
+            main,
+            "_RUNTIME_ENV_FILE_KEYS",
+            {"OPENAI_API_KEY", "SCHEDULE_TIME"},
+        ), patch(
+            "main._read_active_env_values",
+            return_value=None,
+        ):
+            main._reload_env_file_values_preserving_overrides()
+
+            self.assertEqual(os.environ["OPENAI_API_KEY"], "runtime-secret")
+            self.assertEqual(os.environ["SCHEDULE_TIME"], "09:30")
+            self.assertEqual(
+                main._RUNTIME_ENV_FILE_KEYS,
+                {"OPENAI_API_KEY", "SCHEDULE_TIME"},
+            )
+
     def test_schedule_time_provider_propagates_config_read_failures(self) -> None:
         with patch(
             "src.core.config_manager.ConfigManager.read_config_map",
@@ -197,6 +227,23 @@ class MainScheduleModeTestCase(unittest.TestCase):
 
             with self.assertRaisesRegex(RuntimeError, "boom"):
                 provider()
+
+    def test_schedule_time_provider_respects_process_env_precedence(self) -> None:
+        with patch.dict(
+            os.environ,
+            {"SCHEDULE_TIME": "18:00"},
+            clear=False,
+        ), patch.object(
+            main,
+            "_INITIAL_PROCESS_ENV",
+            {"SCHEDULE_TIME": "18:00"},
+        ), patch(
+            "src.core.config_manager.ConfigManager.read_config_map",
+            side_effect=AssertionError("should not read .env when process env override exists"),
+        ):
+            provider = main._build_schedule_time_provider("09:30")
+
+            self.assertEqual(provider(), "18:00")
 
     def test_single_run_keeps_cli_stock_override(self) -> None:
         args = self._make_args(stocks="600519,000001")
