@@ -294,6 +294,7 @@ def test_llm_channel(
             models=request.models,
             enabled=request.enabled,
             timeout_seconds=request.timeout_seconds,
+            effective_map=request.effective_map,
         )
         return TestLLMChannelResponse.model_validate(payload)
     except (ValueError, TypeError) as exc:
@@ -338,6 +339,7 @@ def discover_llm_channel_models(
             api_key=request.api_key,
             models=request.models,
             timeout_seconds=request.timeout_seconds,
+            effective_map=request.effective_map,
         )
         return DiscoverLLMChannelModelsResponse.model_validate(payload)
     except (ValueError, TypeError) as exc:

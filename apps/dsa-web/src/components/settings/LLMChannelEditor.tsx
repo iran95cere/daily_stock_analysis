@@ -154,6 +154,8 @@ interface ChannelDiscoveryState {
   models: string[];
 }
 
+type ItemMapPayload = Record<string, string>;
+
 interface RuntimeConfig {
   primaryModel: string;
   agentPrimaryModel: string;
@@ -506,6 +508,17 @@ function splitModels(models: string): string[] {
     .split(',')
     .map((entry) => entry.trim())
     .filter(Boolean);
+}
+
+function buildEffectiveMapFromItems(items: Array<{ key: string; value: string }>): ItemMapPayload {
+  const effectiveMap: ItemMapPayload = {};
+  for (const item of items) {
+    if (!item.key) {
+      continue;
+    }
+    effectiveMap[item.key] = item.value;
+  }
+  return effectiveMap;
 }
 
 interface ParsedModelRef {
@@ -1004,6 +1017,7 @@ export const LLMChannelEditor: React.FC<LLMChannelEditorProps> = ({
   };
 
   const handleTest = async (channel: ChannelConfig, index: number) => {
+    const effectiveMap = buildEffectiveMapFromItems(items);
     setTestStates((previous) => ({
       ...previous,
       [index]: { status: 'loading', text: '测试中...' },
@@ -1017,6 +1031,7 @@ export const LLMChannelEditor: React.FC<LLMChannelEditorProps> = ({
         apiKey: channel.apiKey,
         models: splitModels(channel.models),
         enabled: channel.enabled,
+        effectiveMap,
       });
 
       const text = result.success
@@ -1040,6 +1055,7 @@ export const LLMChannelEditor: React.FC<LLMChannelEditorProps> = ({
   };
 
   const handleDiscoverModels = async (channel: ChannelConfig) => {
+    const effectiveMap = buildEffectiveMapFromItems(items);
     const requestId = discoveryRequestIdRef.current + 1;
     discoveryRequestIdRef.current = requestId;
     discoveryNonceRef.current[channel.id] = requestId;
@@ -1061,6 +1077,7 @@ export const LLMChannelEditor: React.FC<LLMChannelEditorProps> = ({
         baseUrl: channel.baseUrl,
         apiKey: channel.apiKey,
         models: splitModels(channel.models),
+        effectiveMap,
       });
 
       if (discoveryNonceRef.current[channel.id] !== nonce) return;

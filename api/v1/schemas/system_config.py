@@ -149,6 +149,7 @@ class TestLLMChannelRequest(BaseModel):
     models: List[str] = Field(default_factory=list)
     enabled: bool = True
     timeout_seconds: float = 20.0
+    effective_map: Dict[str, str] = Field(default_factory=dict)
 
 
 class TestLLMChannelResponse(BaseModel):
@@ -171,6 +172,7 @@ class DiscoverLLMChannelModelsRequest(BaseModel):
     api_key: str = ""
     models: List[str] = Field(default_factory=list)
     timeout_seconds: float = 20.0
+    effective_map: Dict[str, str] = Field(default_factory=dict)
 
 
 class DiscoverLLMChannelModelsResponse(BaseModel):

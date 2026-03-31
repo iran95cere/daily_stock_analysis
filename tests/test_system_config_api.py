@@ -282,13 +282,23 @@ class SystemConfigApiTestCase(unittest.TestCase):
                     base_url="https://api.example.com/v1",
                     api_key="sk-test",
                     models=["gpt-4o-mini"],
+                    effective_map={"DEEPSEEK_API_KEY": "sk-draft"},
                 ),
                 service=self.service,
             ).model_dump()
 
         self.assertTrue(payload["success"])
         self.assertEqual(payload["resolved_model"], "openai/gpt-4o-mini")
-        mock_test.assert_called_once()
+        mock_test.assert_called_once_with(
+            name="primary",
+            protocol="openai",
+            base_url="https://api.example.com/v1",
+            api_key="sk-test",
+            models=["gpt-4o-mini"],
+            enabled=True,
+            timeout_seconds=20.0,
+            effective_map={"DEEPSEEK_API_KEY": "sk-draft"},
+        )
 
     def test_validate_returns_user_facing_model_message_without_internal_env_key_name(self) -> None:
         validation = self.service.validate(
@@ -326,13 +336,22 @@ class SystemConfigApiTestCase(unittest.TestCase):
                     protocol="openai",
                     base_url="https://dashscope.aliyuncs.com/compatible-mode/v1",
                     api_key="sk-test",
+                    effective_map={"DEEPSEEK_API_KEY": "sk-draft"},
                 ),
                 service=self.service,
             ).model_dump()
 
         self.assertTrue(payload["success"])
         self.assertEqual(payload["models"], ["qwen-plus", "qwen-turbo"])
-        mock_discover.assert_called_once()
+        mock_discover.assert_called_once_with(
+            name="dashscope",
+            protocol="openai",
+            base_url="https://dashscope.aliyuncs.com/compatible-mode/v1",
+            api_key="sk-test",
+            models=[],
+            timeout_seconds=20.0,
+            effective_map={"DEEPSEEK_API_KEY": "sk-draft"},
+        )
 
 
 if __name__ == "__main__":

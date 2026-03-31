@@ -92,6 +92,7 @@ function toSnakeTestChannelPayload(payload: TestLLMChannelRequest): Record<strin
     models: payload.models,
     enabled: payload.enabled ?? true,
     timeout_seconds: payload.timeoutSeconds ?? 20,
+    effective_map: payload.effectiveMap ?? {},
   };
 }
 
@@ -103,6 +104,7 @@ function toSnakeDiscoverModelsPayload(payload: DiscoverLLMChannelModelsRequest):
     api_key: payload.apiKey ?? '',
     models: payload.models,
     timeout_seconds: payload.timeoutSeconds ?? 20,
+    effective_map: payload.effectiveMap ?? {},
   };
 }
 

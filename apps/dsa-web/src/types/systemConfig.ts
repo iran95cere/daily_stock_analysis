@@ -135,6 +135,7 @@ export interface TestLLMChannelRequest {
   models: string[];
   enabled?: boolean;
   timeoutSeconds?: number;
+  effectiveMap?: Record<string, string>;
 }
 
 export interface TestLLMChannelResponse {
@@ -153,6 +154,7 @@ export interface DiscoverLLMChannelModelsRequest {
   apiKey?: string;
   models?: string[];
   timeoutSeconds?: number;
+  effectiveMap?: Record<string, string>;
 }
 
 export interface DiscoverLLMChannelModelsResponse {
