@@ -220,6 +220,29 @@ class ConfigEnvCompatibilityTestCase(unittest.TestCase):
             ],
         )
 
+    @patch("src.config.setup_env")
+    @patch.object(Config, "_parse_litellm_yaml", return_value=[])
+    def test_stock_email_groups_normalize_codes_at_parse_time(
+        self,
+        _mock_parse_yaml,
+        _mock_setup_env,
+    ) -> None:
+        """STOCK_GROUP codes are canonicalized at parse time so that
+        runtime email routing matches the same equivalence used in
+        validate_structured()."""
+        env = {
+            "STOCK_LIST": "600519,HK00700",
+            "STOCK_GROUP_1": "SH600519,1810.HK",
+            "EMAIL_GROUP_1": "user@example.com",
+        }
+
+        with patch.dict(os.environ, env, clear=True):
+            config = Config._load_from_env()
+
+        stocks, emails = config.stock_email_groups[0]
+        self.assertEqual(stocks, ["600519", "HK01810"])
+        self.assertEqual(emails, ["user@example.com"])
+
 
 if __name__ == "__main__":
     unittest.main()

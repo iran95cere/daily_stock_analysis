@@ -1577,7 +1577,11 @@ class Config:
         """
         Parse STOCK_GROUP_N and EMAIL_GROUP_N from environment.
         Returns [(stocks, emails), ...] ordered by group index.
+        Stock codes are canonicalized via normalize_stock_code so that
+        runtime routing matches the same equivalence used in validation.
         """
+        from data_provider.base import normalize_stock_code
+
         groups: dict = {}
         stock_re = re.compile(r'^STOCK_GROUP_(\d+)$', re.IGNORECASE)
         email_re = re.compile(r'^EMAIL_GROUP_(\d+)$', re.IGNORECASE)
@@ -1586,7 +1590,10 @@ class Config:
             if m:
                 idx = int(m.group(1))
                 val = os.environ[key].strip()
-                groups.setdefault(idx, {})['stocks'] = [c.strip() for c in val.split(',') if c.strip()]
+                groups.setdefault(idx, {})['stocks'] = [
+                    normalize_stock_code(c.strip())
+                    for c in val.split(',') if c.strip()
+                ]
             m = email_re.match(key)
             if m:
                 idx = int(m.group(1))
