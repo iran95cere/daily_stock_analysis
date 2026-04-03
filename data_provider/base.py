@@ -971,6 +971,7 @@ class DataFetcherManager:
             logger.error(f"[数据源终止] {stock_code} 获取失败: elapsed={elapsed:.2f}s\n{error_summary}")
             raise DataFetchError(error_summary)
 
+        all_fetchers_no_data = True
         for attempt, fetcher in enumerate(fetchers, start=1):
             try:
                 logger.info(f"[数据源尝试 {attempt}/{total_fetchers}] [{fetcher.name}] 获取 {stock_code}...")
@@ -990,6 +991,12 @@ class DataFetcherManager:
                         f"rows={len(df)}, elapsed={elapsed:.2f}s"
                     )
                     return df, fetcher.name
+                if df is None or df.empty:
+                    logger.debug(
+                        "[数据源无数据] %s 在 %s 中返回空结果，尝试下一个数据源",
+                        stock_code,
+                        fetcher.name,
+                    )
                     
             except Exception as e:
                 error_type, error_reason = summarize_exception(e)
@@ -999,6 +1006,7 @@ class DataFetcherManager:
                     f"error_type={error_type}, reason={error_reason}"
                 )
                 errors.append(error_msg)
+                all_fetchers_no_data = False
                 if attempt < total_fetchers:
                     next_fetcher = fetchers[attempt]
                     logger.info(f"[数据源切换] {stock_code}: [{fetcher.name}] -> [{next_fetcher.name}]")
@@ -1009,7 +1017,7 @@ class DataFetcherManager:
         # retry with a leading-zero padded A-share candidate (e.g. '02714' → '002714').
         # Only triggers for plain 5-digit codes; explicit HK prefixes (e.g. 'HK02714')
         # are already normalized out of this pattern.
-        if re.match(r"^0\d{4}$", stock_code):
+        if all_fetchers_no_data and re.match(r"^0\d{4}$", stock_code):
             padded = "0" + stock_code
             logger.info("[5位裸码兜底] %s 全部数据源无数据，尝试补零为 A 股候选码 %s", stock_code, padded)
             try:

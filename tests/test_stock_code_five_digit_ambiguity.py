@@ -157,6 +157,18 @@ class TestFiveDigitAmbiguity(unittest.TestCase):
         self.assertEqual(fetcher.calls, ["02714", "002714"])
         self.assertEqual(len(df), 2)
 
+    def test_manager_no_fallback_when_exception_occurs(self):
+        """出现异常时不应触发 5 位裸码补零兜底。"""
+
+        def result_provider(stock_code: str, **_):
+            raise RuntimeError("upstream failure")
+
+        fetcher = _MockDailyFetcher("AkshareFetcher", 1, result_provider)
+        manager = DataFetcherManager(fetchers=[fetcher])
+        with self.assertRaises(DataFetchError):
+            manager.get_daily_data("02319", start_date="2026-03-01", end_date="2026-03-02")
+        self.assertEqual(fetcher.calls, ["02319"])
+
     def test_manager_does_not_retry_padded_for_explicit_hk_code(self):
         """显式 HK 代码不会触发 6 位补零兜底。"""
 
