@@ -387,6 +387,93 @@ class SearchNewsFreshnessTestCase(unittest.TestCase):
                 self.assertEqual(params["search_lang"], expected_lang)
                 self.assertEqual(params["country"], expected_country)
 
+    def test_search_comprehensive_intel_brave_locale_matches_market_context(self) -> None:
+        """Comprehensive intel should forward Brave locale hints for A-share vs US stock."""
+        fresh_dt = datetime.now(timezone.utc).replace(microsecond=0)
+        fresh_iso = fresh_dt.strftime("%Y-%m-%dT%H:%M:%SZ")
+
+        for stock_code, stock_name, expected_lang, expected_country, title, description in (
+            ("600519", "贵州茅台", "zh-hans", "CN", "贵州茅台中文资讯", "贵州茅台中文摘要"),
+            ("AAPL", "Apple", "en", "US", "Apple earnings beat", "English summary"),
+        ):
+            with self.subTest(stock_code=stock_code):
+                fake_response = MagicMock()
+                fake_response.status_code = 200
+                fake_response.json.return_value = {
+                    "web": {
+                        "results": [
+                            {
+                                "title": title,
+                                "description": description,
+                                "url": "https://example.com/news",
+                                "age": fresh_iso,
+                            }
+                        ]
+                    }
+                }
+
+                with patch("src.search_service.requests.get", return_value=fake_response) as mock_get:
+                    service = SearchService(
+                        brave_keys=["dummy_key"],
+                        searxng_public_instances_enabled=False,
+                        news_max_age_days=3,
+                        news_strategy_profile="short",
+                    )
+                    intel = service.search_comprehensive_intel(
+                        stock_code,
+                        stock_name,
+                        max_searches=2,
+                    )
+
+                self.assertIn("latest_news", intel)
+                self.assertIn("market_analysis", intel)
+                self.assertGreaterEqual(len(mock_get.call_args_list), 2)
+                for call in mock_get.call_args_list[:2]:
+                    params = call.kwargs["params"]
+                    self.assertEqual(params["search_lang"], expected_lang)
+                    self.assertEqual(params["country"], expected_country)
+
+    def test_search_comprehensive_intel_tries_next_provider_when_a_share_results_are_off_topic(self) -> None:
+        """A-share intel should continue to the next provider when the first batch is off-topic."""
+        fresh = datetime.now().date().isoformat()
+        service = SearchService(
+            bocha_keys=["dummy_key"],
+            searxng_public_instances_enabled=False,
+            news_max_age_days=3,
+            news_strategy_profile="short",
+        )
+
+        p1 = SimpleNamespace(
+            is_available=True,
+            name="P1",
+            search=MagicMock(
+                return_value=_response(
+                    [
+                        _result("美股三大指数集体收涨", fresh),
+                        _result("海外芯片股迎来反弹", fresh),
+                    ]
+                )
+            ),
+        )
+        p2 = SimpleNamespace(
+            is_available=True,
+            name="P2",
+            search=MagicMock(
+                return_value=_response([_result("贵州茅台 600519 发布分红公告", fresh)])
+            ),
+        )
+        service._providers = [p1, p2]
+
+        with patch("src.search_service.time.sleep"):
+            intel = service.search_comprehensive_intel("600519", "贵州茅台", max_searches=1)
+
+        self.assertEqual(
+            [item.title for item in intel["latest_news"].results],
+            ["贵州茅台 600519 发布分红公告"],
+        )
+        p1.search.assert_called_once()
+        p2.search.assert_called_once()
+
     def test_search_comprehensive_intel_splits_strict_and_non_strict_filters(self) -> None:
         """Latest news stays strict while market analysis keeps undated results."""
         today = datetime.now().date()
