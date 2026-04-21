@@ -38,3 +38,6 @@ pytest-cov>=4.1.0
 ipython>=8.14.0
 jupyter>=1.0.0  # added for interactive exploration of stock data
 rich>=13.0.0    # nicer terminal output when running analysis scripts manually
+
+# Personal additions
+openpyxl>=3.1.0  # export analysis results to Excel for easier review
